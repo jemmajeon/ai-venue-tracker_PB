@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI 게재처 트래커</title>
+<style>
+:root{
+  --page:#f9f9f7;--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#898781;--grid:#e1e0d9;--base:#c3c2b7;
+  --ring:rgba(11,11,11,.10);--s1:#2a78d6;--s2:#eb6834;--up:#006300;--tipbg:#0b0b0b;--tipfg:#f0efec;
+  color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --page:#0d0d0d;--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#898781;--grid:#2c2c2a;--base:#383835;
+  --ring:rgba(255,255,255,.10);--s1:#3987e5;--s2:#d95926;--up:#0ca30c;--tipbg:#f0efec;--tipfg:#0b0b0b;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --page:#0d0d0d;--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#898781;--grid:#2c2c2a;--base:#383835;
+  --ring:rgba(255,255,255,.10);--s1:#3987e5;--s2:#d95926;--up:#0ca30c;--tipbg:#f0efec;--tipfg:#0b0b0b;color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--page);color:var(--ink);font:15px/1.55 system-ui,-apple-system,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+main{max-width:1120px;margin:0 auto;padding:36px max(16px,env(safe-area-inset-right,0px)) 64px max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:20px}
+.month,.panel{display:flex;flex-direction:column;gap:20px}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:8px 24px}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:.08em;color:var(--muted)}
+h1{margin:4px 0 4px;font-size:28px;text-wrap:balance}
+.sub{margin:0;color:var(--ink2);max-width:62ch}
+.stamp{font-size:13px;color:var(--muted);text-align:right;line-height:1.5}
+.stamp b{color:var(--up);font-weight:600}
+.site{display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid var(--grid)}
+.site a{font-size:14px;font-weight:600;color:var(--muted);text-decoration:none;padding:8px 12px;border-bottom:2px solid transparent;margin-bottom:-1px}
+.site a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--s1)}
+.site a:hover{color:var(--ink)}
+.site a:focus-visible{outline:2px solid var(--s1);outline-offset:2px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--grid)}
+.tab{font:600 14px inherit;font-family:inherit;background:none;border:0;border-bottom:2px solid transparent;color:var(--muted);padding:8px 12px;cursor:pointer;margin-bottom:-1px}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--s1)}
+.filters{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.filters .lab{font-size:13px;color:var(--muted);margin-right:4px}
+.seg{font:600 13px inherit;font-family:inherit;color:var(--ink2);background:var(--surface);border:1px solid var(--ring);border-radius:999px;padding:5px 14px;cursor:pointer;font-variant-numeric:tabular-nums}
+.seg[aria-pressed="true"]{background:var(--ink);color:var(--page);border-color:var(--ink)}
+.tab:focus-visible,.seg:focus-visible,[data-tip]:focus-visible{outline:2px solid var(--s1);outline-offset:2px}
+.card{background:var(--surface);border:1px solid var(--ring);border-radius:12px;padding:18px 20px;min-width:0}
+.card h2{margin:0;font-size:15px}
+.card .cap{margin:2px 0 14px;font-size:13px;color:var(--muted)}
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+@media (max-width:900px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi .l{font-size:13px;color:var(--ink2)}
+.kpi .v{font-size:30px;font-weight:700;letter-spacing:-.01em;margin:2px 0}
+.kpi .v small{font-size:15px;font-weight:600;color:var(--ink2);margin-left:2px}
+.delta{font-size:12px;color:var(--muted)}
+.share{height:8px;border-radius:4px;background:var(--grid);overflow:hidden;margin-top:8px}
+.share i{display:block;height:100%;border-radius:4px}
+.row2b{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+@media (max-width:900px){.row2b{grid-template-columns:1fr}}
+svg{width:100%;height:auto;display:block;overflow:visible}
+.grid{stroke:var(--grid);stroke-width:1}
+.base{stroke:var(--base);stroke-width:1}
+.tick{fill:var(--muted);font-size:11px;font-variant-numeric:tabular-nums}
+.tick.sub{font-size:10px}
+.val{fill:var(--ink);font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
+.m1{fill:var(--s1);background:var(--s1)}
+.m2{fill:var(--s2);background:var(--s2)}
+.hit{outline:none}
+.hit:hover path,.hit:focus path{filter:brightness(1.12)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--ink2);margin:-6px 0 12px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:2px;display:inline-block}
+.prow{display:grid;grid-template-columns:minmax(72px,30%) 1fr;gap:10px;align-items:center;padding:5px 4px;border-radius:6px;outline:none}
+.prow:hover,.prow:focus,.krow:hover,.krow:focus{background:color-mix(in srgb,var(--ink) 5%,transparent)}
+.plab{font-size:13px;line-height:1.3;overflow-wrap:anywhere}
+.pbars{display:flex;flex-direction:column;gap:2px}
+.pb,.kbar{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.pb i,.kbar i{display:block;height:9px;border-radius:0 4px 4px 0;min-width:2px}
+.pb span,.kbar span{min-width:2ch}
+.kw-list{display:flex;flex-direction:column}
+.kw{display:grid;grid-template-columns:28px minmax(0,1fr) minmax(0,1.3fr) minmax(0,1fr) minmax(120px,1.1fr);gap:4px 16px;align-items:center;padding:8px 6px;border-bottom:1px solid var(--grid);outline:none;font-size:14px;line-height:1.35}
+.kw:last-child{border-bottom:0}
+.kw:hover,.kw:focus{background:color-mix(in srgb,var(--ink) 5%,transparent)}
+.kw-head{font-size:12px;font-weight:600;color:var(--muted);padding-top:0}
+.kw-head:hover{background:none}
+.kw-rank{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums;text-align:right}
+.kw-ko{font-weight:600;color:var(--ink)}
+.kw-en{color:var(--ink2)}
+.kw-zh{color:var(--ink);font-family:"PingFang SC","Microsoft YaHei","Noto Sans CJK SC","Noto Sans SC",sans-serif}
+.kw-ko,.kw-en,.kw-zh{overflow-wrap:anywhere}
+.kw-bar{display:flex;align-items:center;gap:8px}
+.kw-bar i{display:block;height:10px;border-radius:0 4px 4px 0;min-width:2px}
+.kw-bar b{font-size:13px;font-variant-numeric:tabular-nums}
+@media (max-width:640px){
+  .kw{grid-template-columns:24px minmax(0,1fr) 84px;grid-template-areas:"r ko bar" "r en bar" "r zh bar";gap:2px 10px}
+  .kw-head{display:none}
+  .kw-rank{grid-area:r;align-self:start;padding-top:2px}
+  .kw-ko{grid-area:ko}.kw-en{grid-area:en}.kw-zh{grid-area:zh}.kw-bar{grid-area:bar}
+  .kw-ko::before,.kw-en::before,.kw-zh::before{content:attr(data-l);display:inline-block;width:22px;font-size:10px;font-weight:600;color:var(--muted)}
+}
+.krow{display:grid;grid-template-columns:minmax(0,46%) 1fr;gap:10px;align-items:center;padding:4px;border-radius:6px;outline:none}
+.klab{display:flex;flex-direction:column;line-height:1.25;min-width:0}
+.klab b{font-size:13px;font-weight:600}
+.klab small{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbar i{height:10px}
+.scroll{overflow-x:auto}
+.heat{border-collapse:separate;border-spacing:2px;font-size:12px;font-variant-numeric:tabular-nums;min-width:520px;width:100%}
+.heat th{font-weight:500;color:var(--ink2);text-align:left;padding:4px 6px}
+.heat thead th{vertical-align:bottom;height:96px;padding:0 0 6px}
+.heat thead th span{display:inline-block;writing-mode:vertical-rl;transform:rotate(180deg);max-height:92px;line-height:1.2;font-size:11px;overflow:hidden}
+.heat td{height:30px;text-align:center;border-radius:4px;outline:none}
+.hc{background:color-mix(in srgb,var(--s1) var(--w),var(--surface));color:var(--ink);font-weight:600}
+.hc.hi{color:#fff}
+.hc:hover,.hc:focus{box-shadow:0 0 0 2px var(--ink) inset}
+.hz{background:color-mix(in srgb,var(--grid) 45%,transparent)}
+.ramp{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);margin-top:10px}
+.ramp i{width:120px;height:8px;border-radius:4px;background:linear-gradient(90deg,color-mix(in srgb,var(--s1) 14%,var(--surface)),var(--s1))}
+table.list{width:100%;border-collapse:collapse;font-size:13px}
+.list th,.list td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--grid);vertical-align:top}
+.list th{color:var(--muted);font-weight:600;white-space:nowrap}
+.list td:first-child{white-space:nowrap;font-variant-numeric:tabular-nums}
+.list a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--grid)}
+.list a:hover{border-color:var(--s1)}
+.tag{font-size:11px;font-weight:600;color:var(--s1);border:1px solid currentColor;border-radius:4px;padding:0 4px;white-space:nowrap}
+.note{font-size:12px;color:var(--muted);margin:10px 0 0}
+footer{color:var(--muted);font-size:12px;line-height:1.7}
+#tip{position:fixed;pointer-events:none;z-index:10;background:var(--tipbg);color:var(--tipfg);border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.45;max-width:260px;box-shadow:0 4px 16px rgba(0,0,0,.18)}
+#tip b{display:block;font-size:14px}
+#tip span{opacity:.75}
+
+.miss{fill:none;stroke:var(--base);stroke-dasharray:3 3}
+.zero{fill:var(--surface);stroke:var(--s1);stroke-width:2}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{font-size:11px;background:color-mix(in srgb,var(--ink) 6%,transparent);border-radius:4px;padding:1px 6px;white-space:nowrap}
+.kind{font-size:11px;font-weight:700;border-radius:4px;padding:1px 6px;white-space:nowrap}
+.kind.d{color:var(--s1);background:color-mix(in srgb,var(--s1) 12%,transparent)}
+.kind.w,.kind.m{color:var(--s2);background:color-mix(in srgb,var(--s2) 14%,transparent)}
+.to{font-size:12px;color:var(--muted);white-space:nowrap}
+.list td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.list .issue{font-size:12px;color:var(--ink2)}
+.keyrow{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--ink2);margin:-6px 0 10px}
+.keyrow span{display:inline-flex;align-items:center;gap:6px}
+.keyrow svg{width:14px;height:14px;display:inline-block}
+.hub{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:760px){.hub{grid-template-columns:1fr}}
+.door{display:flex;flex-direction:column;gap:12px;text-decoration:none;color:var(--ink);transition:border-color .15s}
+.door:hover,.door:focus-visible{border-color:var(--s1);outline:none}
+.door h2{font-size:19px}
+.door p{margin:0;color:var(--ink2);font-size:14px}
+.door .go{font-size:14px;font-weight:600;color:var(--s1)}
+.mini{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.mini div{background:color-mix(in srgb,var(--ink) 4%,transparent);border-radius:8px;padding:8px 10px}
+.mini b{display:block;font-size:20px}
+.mini span{font-size:12px;color:var(--muted)}
+.coords code{font-size:12px;background:color-mix(in srgb,var(--ink) 6%,transparent);border-radius:4px;padding:1px 6px;white-space:nowrap}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <div class="eyebrow">AI VENUE TRACKER</div>
+      <h1>중국 AI 권위 게재처 논문 트래커</h1>
+      <p class="sub">중국 AI 학계가 권위를 인정하는 게재처의 논문을 매일 수집해 주제와 키워드(중·영·한)로 분류하고, 결과를 Slack으로 보고합니다.</p>
+    </div>
+    <div class="stamp"><b>●</b> 갱신 2026-10-25 08:17 KST</div>
+  </header>
+  <nav class="site" aria-label="페이지"><a href="./" aria-current="page">인덱스</a><a href="report/">리포트·차트</a><a href="slack/">Slack 발송 로그</a></nav>
+
+  <div class="hub">
+    <a class="card door" href="report/">
+      <div><h2>리포트·차트</h2><p>게재처·주제 분포, 주별 추이, 3개 언어 키워드, 최근 논문</p></div>
+      <div class="mini">
+        <div><b>238</b><span>2026-10 논문</span></div>
+        <div><b>441</b><span>누적 · 2개월</span></div>
+        <div><b>17%</b><span>피지컬 AI</span></div>
+      </div>
+      <span class="go">리포트 열기 →</span>
+    </a>
+    <a class="card door" href="slack/">
+      <div><h2>Slack 발송 로그</h2><p>매일·매주·매월 보낸 보고와 발송 타임라인, 확인 필요 항목</p></div>
+      <div class="mini">
+        <div><b>21</b><span>전체 발송</span></div>
+        <div><b>17/20</b><span>일간 발송일</span></div>
+        <div><b>3</b><span>확인 필요</span></div>
+      </div>
+      <span class="go">발송 로그 열기 →</span>
+    </a>
+  </div>
+
+  <section class="card coords">
+    <h2>좌표</h2>
+    <p class="cap">바로 열리는 주소 · 이 페이지 기준 상대 경로</p>
+    <div class="scroll"><table class="list">
+      <tr><th>주소</th><th>열리는 화면</th></tr>
+      <tr><td><a href="./"><code>./</code></a></td><td>인덱스 (이 페이지)</td></tr>
+      <tr><td><a href="report/"><code>report/</code></a></td><td>리포트·차트, 최신 귀속월 2026-10</td></tr>
+      <tr><td><a href="report/#m202609"><code>report/#m202609</code></a></td><td>리포트·차트, 2026-09</td></tr>
+      <tr><td><a href="slack/"><code>slack/</code></a></td><td>Slack 발송 로그 (타임라인 + 발송 기록 + 본문)</td></tr>
+    </table></div>
+  </section>
+
+  <footer>공개 학술 정보만 담습니다. 데이터는 시트 적재가 끝날 때와 3시간마다 갱신됩니다.</footer>
+</main>
+</body>
+</html>
