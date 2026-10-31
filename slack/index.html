@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Slack 발송 로그 · AI 게재처 트래커</title>
+<style>
+:root{
+  --page:#f9f9f7;--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#898781;--grid:#e1e0d9;--base:#c3c2b7;
+  --ring:rgba(11,11,11,.10);--s1:#2a78d6;--s2:#eb6834;--up:#006300;--tipbg:#0b0b0b;--tipfg:#f0efec;
+  color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --page:#0d0d0d;--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#898781;--grid:#2c2c2a;--base:#383835;
+  --ring:rgba(255,255,255,.10);--s1:#3987e5;--s2:#d95926;--up:#0ca30c;--tipbg:#f0efec;--tipfg:#0b0b0b;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --page:#0d0d0d;--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#898781;--grid:#2c2c2a;--base:#383835;
+  --ring:rgba(255,255,255,.10);--s1:#3987e5;--s2:#d95926;--up:#0ca30c;--tipbg:#f0efec;--tipfg:#0b0b0b;color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--page);color:var(--ink);font:15px/1.55 system-ui,-apple-system,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+main{max-width:1120px;margin:0 auto;padding:36px max(16px,env(safe-area-inset-right,0px)) 64px max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:20px}
+.month,.panel{display:flex;flex-direction:column;gap:20px}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:8px 24px}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:.08em;color:var(--muted)}
+h1{margin:4px 0 4px;font-size:28px;text-wrap:balance}
+.sub{margin:0;color:var(--ink2);max-width:62ch}
+.stamp{font-size:13px;color:var(--muted);text-align:right;line-height:1.5}
+.stamp b{color:var(--up);font-weight:600}
+.site{display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid var(--grid)}
+.site a{font-size:14px;font-weight:600;color:var(--muted);text-decoration:none;padding:8px 12px;border-bottom:2px solid transparent;margin-bottom:-1px}
+.site a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--s1)}
+.site a:hover{color:var(--ink)}
+.site a:focus-visible{outline:2px solid var(--s1);outline-offset:2px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--grid)}
+.tab{font:600 14px inherit;font-family:inherit;background:none;border:0;border-bottom:2px solid transparent;color:var(--muted);padding:8px 12px;cursor:pointer;margin-bottom:-1px}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--s1)}
+.filters{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.filters .lab{font-size:13px;color:var(--muted);margin-right:4px}
+.seg{font:600 13px inherit;font-family:inherit;color:var(--ink2);background:var(--surface);border:1px solid var(--ring);border-radius:999px;padding:5px 14px;cursor:pointer;font-variant-numeric:tabular-nums}
+.seg[aria-pressed="true"]{background:var(--ink);color:var(--page);border-color:var(--ink)}
+.tab:focus-visible,.seg:focus-visible,[data-tip]:focus-visible{outline:2px solid var(--s1);outline-offset:2px}
+.card{background:var(--surface);border:1px solid var(--ring);border-radius:12px;padding:18px 20px;min-width:0}
+.card h2{margin:0;font-size:15px}
+.card .cap{margin:2px 0 14px;font-size:13px;color:var(--muted)}
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+@media (max-width:900px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi .l{font-size:13px;color:var(--ink2)}
+.kpi .v{font-size:30px;font-weight:700;letter-spacing:-.01em;margin:2px 0}
+.kpi .v small{font-size:15px;font-weight:600;color:var(--ink2);margin-left:2px}
+.delta{font-size:12px;color:var(--muted)}
+.share{height:8px;border-radius:4px;background:var(--grid);overflow:hidden;margin-top:8px}
+.share i{display:block;height:100%;border-radius:4px}
+.row2b{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+@media (max-width:900px){.row2b{grid-template-columns:1fr}}
+svg{width:100%;height:auto;display:block;overflow:visible}
+.grid{stroke:var(--grid);stroke-width:1}
+.base{stroke:var(--base);stroke-width:1}
+.tick{fill:var(--muted);font-size:11px;font-variant-numeric:tabular-nums}
+.tick.sub{font-size:10px}
+.val{fill:var(--ink);font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
+.m1{fill:var(--s1);background:var(--s1)}
+.m2{fill:var(--s2);background:var(--s2)}
+.hit{outline:none}
+.hit:hover path,.hit:focus path{filter:brightness(1.12)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--ink2);margin:-6px 0 12px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:2px;display:inline-block}
+.prow{display:grid;grid-template-columns:minmax(72px,30%) 1fr;gap:10px;align-items:center;padding:5px 4px;border-radius:6px;outline:none}
+.prow:hover,.prow:focus,.krow:hover,.krow:focus{background:color-mix(in srgb,var(--ink) 5%,transparent)}
+.plab{font-size:13px;line-height:1.3;overflow-wrap:anywhere}
+.pbars{display:flex;flex-direction:column;gap:2px}
+.pb,.kbar{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.pb i,.kbar i{display:block;height:9px;border-radius:0 4px 4px 0;min-width:2px}
+.pb span,.kbar span{min-width:2ch}
+.kw-list{display:flex;flex-direction:column}
+.kw{display:grid;grid-template-columns:28px minmax(0,1fr) minmax(0,1.3fr) minmax(0,1fr) minmax(120px,1.1fr);gap:4px 16px;align-items:center;padding:8px 6px;border-bottom:1px solid var(--grid);outline:none;font-size:14px;line-height:1.35}
+.kw:last-child{border-bottom:0}
+.kw:hover,.kw:focus{background:color-mix(in srgb,var(--ink) 5%,transparent)}
+.kw-head{font-size:12px;font-weight:600;color:var(--muted);padding-top:0}
+.kw-head:hover{background:none}
+.kw-rank{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums;text-align:right}
+.kw-ko{font-weight:600;color:var(--ink)}
+.kw-en{color:var(--ink2)}
+.kw-zh{color:var(--ink);font-family:"PingFang SC","Microsoft YaHei","Noto Sans CJK SC","Noto Sans SC",sans-serif}
+.kw-ko,.kw-en,.kw-zh{overflow-wrap:anywhere}
+.kw-bar{display:flex;align-items:center;gap:8px}
+.kw-bar i{display:block;height:10px;border-radius:0 4px 4px 0;min-width:2px}
+.kw-bar b{font-size:13px;font-variant-numeric:tabular-nums}
+@media (max-width:640px){
+  .kw{grid-template-columns:24px minmax(0,1fr) 84px;grid-template-areas:"r ko bar" "r en bar" "r zh bar";gap:2px 10px}
+  .kw-head{display:none}
+  .kw-rank{grid-area:r;align-self:start;padding-top:2px}
+  .kw-ko{grid-area:ko}.kw-en{grid-area:en}.kw-zh{grid-area:zh}.kw-bar{grid-area:bar}
+  .kw-ko::before,.kw-en::before,.kw-zh::before{content:attr(data-l);display:inline-block;width:22px;font-size:10px;font-weight:600;color:var(--muted)}
+}
+.krow{display:grid;grid-template-columns:minmax(0,46%) 1fr;gap:10px;align-items:center;padding:4px;border-radius:6px;outline:none}
+.klab{display:flex;flex-direction:column;line-height:1.25;min-width:0}
+.klab b{font-size:13px;font-weight:600}
+.klab small{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbar i{height:10px}
+.scroll{overflow-x:auto}
+.heat{border-collapse:separate;border-spacing:2px;font-size:12px;font-variant-numeric:tabular-nums;min-width:520px;width:100%}
+.heat th{font-weight:500;color:var(--ink2);text-align:left;padding:4px 6px}
+.heat thead th{vertical-align:bottom;height:96px;padding:0 0 6px}
+.heat thead th span{display:inline-block;writing-mode:vertical-rl;transform:rotate(180deg);max-height:92px;line-height:1.2;font-size:11px;overflow:hidden}
+.heat td{height:30px;text-align:center;border-radius:4px;outline:none}
+.hc{background:color-mix(in srgb,var(--s1) var(--w),var(--surface));color:var(--ink);font-weight:600}
+.hc.hi{color:#fff}
+.hc:hover,.hc:focus{box-shadow:0 0 0 2px var(--ink) inset}
+.hz{background:color-mix(in srgb,var(--grid) 45%,transparent)}
+.ramp{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);margin-top:10px}
+.ramp i{width:120px;height:8px;border-radius:4px;background:linear-gradient(90deg,color-mix(in srgb,var(--s1) 14%,var(--surface)),var(--s1))}
+table.list{width:100%;border-collapse:collapse;font-size:13px}
+.list th,.list td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--grid);vertical-align:top}
+.list th{color:var(--muted);font-weight:600;white-space:nowrap}
+.list td:first-child{white-space:nowrap;font-variant-numeric:tabular-nums}
+.list a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--grid)}
+.list a:hover{border-color:var(--s1)}
+.tag{font-size:11px;font-weight:600;color:var(--s1);border:1px solid currentColor;border-radius:4px;padding:0 4px;white-space:nowrap}
+.note{font-size:12px;color:var(--muted);margin:10px 0 0}
+footer{color:var(--muted);font-size:12px;line-height:1.7}
+#tip{position:fixed;pointer-events:none;z-index:10;background:var(--tipbg);color:var(--tipfg);border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.45;max-width:260px;box-shadow:0 4px 16px rgba(0,0,0,.18)}
+#tip b{display:block;font-size:14px}
+#tip span{opacity:.75}
+
+.miss{fill:none;stroke:var(--base);stroke-dasharray:3 3}
+.zero{fill:var(--surface);stroke:var(--s1);stroke-width:2}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{font-size:11px;background:color-mix(in srgb,var(--ink) 6%,transparent);border-radius:4px;padding:1px 6px;white-space:nowrap}
+.kind{font-size:11px;font-weight:700;border-radius:4px;padding:1px 6px;white-space:nowrap}
+.kind.d{color:var(--s1);background:color-mix(in srgb,var(--s1) 12%,transparent)}
+.kind.w,.kind.m{color:var(--s2);background:color-mix(in srgb,var(--s2) 14%,transparent)}
+.to{font-size:12px;color:var(--muted);white-space:nowrap}
+.list td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.list .issue{font-size:12px;color:var(--ink2)}
+.keyrow{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--ink2);margin:-6px 0 10px}
+.keyrow span{display:inline-flex;align-items:center;gap:6px}
+.keyrow svg{width:14px;height:14px;display:inline-block}
+.hub{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:760px){.hub{grid-template-columns:1fr}}
+.door{display:flex;flex-direction:column;gap:12px;text-decoration:none;color:var(--ink);transition:border-color .15s}
+.door:hover,.door:focus-visible{border-color:var(--s1);outline:none}
+.door h2{font-size:19px}
+.door p{margin:0;color:var(--ink2);font-size:14px}
+.door .go{font-size:14px;font-weight:600;color:var(--s1)}
+.mini{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.mini div{background:color-mix(in srgb,var(--ink) 4%,transparent);border-radius:8px;padding:8px 10px}
+.mini b{display:block;font-size:20px}
+.mini span{font-size:12px;color:var(--muted)}
+.coords code{font-size:12px;background:color-mix(in srgb,var(--ink) 6%,transparent);border-radius:4px;padding:1px 6px;white-space:nowrap}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <div class="eyebrow">AI VENUE TRACKER · SLACK 발송 로그</div>
+      <h1>Slack 발송 로그</h1>
+      <p class="sub">루틴이 매일·매주·매월 Slack으로 보낸 보고를 날짜별로 모았습니다. 본문은 발송한 그대로이고 내부 링크만 뺐습니다.</p>
+    </div>
+    <div class="stamp"><b>●</b> 갱신 2026-10-31 19:30 KST<br>마지막 일간 발송 2026-10-31</div>
+  </header>
+  <nav class="site" aria-label="페이지"><a href="../">인덱스</a><a href="../report/">리포트·차트</a><a href="../slack/" aria-current="page">Slack 발송 로그</a></nav>
+
+  <section class="kpis" aria-label="발송 요약">
+    <div class="card kpi"><div class="l">전체 발송</div><div class="v">29<small>건</small></div><span class="delta">일간 24 · 주간 4 · 월간 1</span></div>
+    <div class="card kpi"><div class="l">일간 발송률</div><div class="v">24<small>/ 27일</small></div><span class="delta">첫 발송부터 마지막 발송까지</span></div>
+    <div class="card kpi"><div class="l">신규 있던 날</div><div class="v">9<small>일</small></div><span class="delta">나머지는 "신규 없음" 발송</span></div>
+    <div class="card kpi"><div class="l">마지막 발송</div><div class="v" style="font-size:22px">2026-10-31</div><span class="delta">일간 기준</span></div>
+    <div class="card kpi"><div class="l">확인 필요</div><div class="v">5<small>건</small></div><span class="delta">마지막 일간 보고 기준</span></div>
+  </section>
+
+  <section class="card">
+    <h2>일간 발송 타임라인</h2>
+    <p class="cap">날짜마다 그날 보고한 신규 논문 수 · 막대나 점에 올리면 상세</p>
+    <div class="keyrow">
+      <span><svg viewBox="0 0 14 14"><rect x="2" y="2" width="10" height="10" rx="2" class="m1"/></svg>신규 있음 (편수)</span>
+      <span><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="4" class="zero"/></svg>신규 없음으로 발송</span>
+      <span><svg viewBox="0 0 14 14"><rect x="2" y="4" width="10" height="7" rx="2" class="miss"/></svg>발송 기록 없음</span>
+    </div>
+    <svg viewBox="0 0 640 210" role="img" aria-label="일간 발송별 신규 논문 수"><line class="grid" x1="34" x2="632" y1="170.0" y2="170.0"/><text class="tick" x="28" y="174.0" text-anchor="end">0</text><line class="grid" x1="34" x2="632" y1="96.0" y2="96.0"/><text class="tick" x="28" y="100.0" text-anchor="end">15</text><line class="grid" x1="34" x2="632" y1="22.0" y2="22.0"/><text class="tick" x="28" y="26.0" text-anchor="end">30</text><g class="hit" tabindex="0" data-tip="10/5 (월) 일간|신규 없음|발송함"><rect x="34.0" y="22" width="22.1" height="148" fill="transparent"/><circle class="zero" cx="45.1" cy="164.0" r="4"/></g><text class="tick" x="45.1" y="188" text-anchor="middle">10/5</text><text class="tick sub" x="45.1" y="202" text-anchor="middle">월</text><g class="hit" tabindex="0" data-tip="10/6 (화)|발송 기록 없음|루틴 미실행 또는 발송 전"><rect x="56.1" y="22" width="22.1" height="148" fill="transparent"/><rect class="miss" x="60.4" y="156.0" width="13.7" height="14.0" rx="3"/></g><g class="hit" tabindex="0" data-tip="10/7 (수)|발송 기록 없음|루틴 미실행 또는 발송 전"><rect x="78.3" y="22" width="22.1" height="148" fill="transparent"/><rect class="miss" x="82.5" y="156.0" width="13.7" height="14.0" rx="3"/></g><text class="tick" x="89.4" y="188" text-anchor="middle">10/7</text><text class="tick sub" x="89.4" y="202" text-anchor="middle">수</text><g class="hit" tabindex="0" data-tip="10/8 (목)|발송 기록 없음|루틴 미실행 또는 발송 전"><rect x="100.4" y="22" width="22.1" height="148" fill="transparent"/><rect class="miss" x="104.7" y="156.0" width="13.7" height="14.0" rx="3"/></g><g class="hit" tabindex="0" data-tip="10/9 (금) 일간|신규 9편|피지컬 AI 5 · 미분류 1"><rect x="122.6" y="22" width="22.1" height="148" fill="transparent"/><path class="m1" d="M126.8,170.0 v-40.4 a4.0,4.0 0 0 1 4.0,-4.0 h5.7 a4.0,4.0 0 0 1 4.0,4.0 v40.4 z"/></g><text class="val" x="133.7" y="120.6" text-anchor="middle">9</text><text class="tick" x="133.7" y="188" text-anchor="middle">10/9</text><text class="tick sub" x="133.7" y="202" text-anchor="middle">금</text><g class="hit" tabindex="0" data-tip="10/10 (토) 일간|신규 8편|피지컬 AI 7 · 미분류 2"><rect x="144.7" y="22" width="22.1" height="148" fill="transparent"/><path class="m1" d="M148.9,170.0 v-35.5 a4.0,4.0 0 0 1 4.0,-4.0 h5.7 a4.0,4.0 0 0 1 4.0,4.0 v35.5 z"/></g><text class="val" x="155.8" y="125.5" text-anchor="middle">8</text><g class="hit" tabindex="0" data-tip="10/11 (일) 일간|신규 없음|발송함"><rect x="166.9" y="22" width="22.1" height="148" fill="transparent"/><circle class="zero" cx="178.0" cy="164.0" r="4"/></g><text class="tick" x="178.0" y="188" text-anchor="middle">10/11</text><text class="tick sub" x="178.0" y="202" text-anchor="middle">일</text><g class="hit" tabindex="0" data-tip="10/12 (월) 일간|신규 없음|발송함"><rect x="189.0" y="22" width="22.1" height="148" fill="transparent"/><circle class="zero" cx="200.1" cy="164.0" r="4"/></g><g class="hit" tabindex="0" data-tip="10/13 (화) 일간|신규 3편|피지컬 AI 0 · 미분류 1"><rect x="211.2" y="22" width="22.1" height="148" fill="transparent"/><path class="m1" d="M215.4,170.0 v-10.8 a4.0,4.0 0 0 1 4.0,-4.0 h5.7 a4.0,4.0 0 0 1 4.0,4.0 v10.8 z"/></g><text class="val" x="222.3" y="150.2" text-anchor="middle">3</text><text class="tick" x="222.3" y="188" text-anchor="middle">10/13</text><text class="tick sub" x="222.3" y="202" text-anchor="middle">화</text><g class="hit" tabindex="0" data-tip="10/14 (수) 일간|신규 없음|발송함"><rect x="233.3" y="22" width="22.1" height="148" fill="transparent"/><circle class="zero" cx="244.4" cy="164.0" r="4"/></g><g class="hit" tabindex="0" data-tip="10/15 (목) 일간|신규 없음|발송함"><rect x="255.5" y="22" width="22.1" height="148" fill="transparent"/><circle class="zero" cx="266.6" cy="164.0" r="4"/></g><text class="tick" x="266.6" y="188" text-anchor="middle">10/15</text><text class="tick sub" x="266.6" y="202" text-anchor="middle">목</text><g class="hit" tabindex="0" data-tip="10/16 (금) 일간|신규 없음|발송함"><rect x="277.6" y="22" width="22.1" height="148" fill="transparent"/><circle class="zero" cx="288.7" cy="164.0" r="4"/></g><g class="hit" tabindex="0" data-tip="10/17 (토) 일간|신규 5편|피지컬 AI 4 · 미분류 0"><rect x="299.8" y="22" width="22.1" height="148" fill="transparent"/><path class="m1" d="M304.0,170.0 v-20.7 a4.0,4.0 0 0 1 4.0,-4.0 h5.7 a4.0,4.0 0 0 1 4.0,4.0 v20.7 z"/></g><text class="val" x="310.9" y="140.3" text-anchor="middle">5</text><text class="tick" x="310.9" y="188" text-anchor="middle">10/17</text><text class="tick sub" x="310.9" y="202" text-anchor="middle">토</text><g class="hit" tabindex="0" data-tip="10/18 (일) 일간|신규 없음|발송함"><rect x="321.9" y="22" width="22.1" height="148" fill="transparent"/><circle class="zero" cx="333.0" cy="164.0" r="4"/></g><g class="hit" tabindex="0" data-tip="10/19 (월) 일간|신규 없음|발송함"><rect x="344.1" y="22" width="22.1" height="148" fill="transparent"/><circle class="zero" cx="355.1" cy="164.0" r="4"/></g><text class="tick" x="355.1" y="188" text-anchor="middle">10/19</text><text class="tick sub" x="355.1" y="202" text-anchor="middle">월</text><g class="hit" tabindex="0" data-tip="10/20 (화) 일간|신규 3편|피지컬 AI 2 · 미분류 0"><rect x="366.2" y="22" width="22.1" height="148" fill="transparent"/><path class="m1" d="M370.4,170.0 v-10.8 a4.0,4.0 0 0 1 4.0,-4.0 h5.7 a4.0,4.0 0 0 1 4.0,4.0 v10.8 z"/></g><text class="val" x="377.3" y="150.2" text-anchor="middle">3</text><g class="hit" tabindex="0" data-tip="10/21 (수) 일간|신규 없음|발송함"><rect x="388.4" y="22" width="22.1" height="148" fill="transparent"/><circle class="zero" cx="399.4" cy="164.0" r="4"/></g><text class="tick" x="399.4" y="188" text-anchor="middle">10/21</text><text class="tick sub" x="399.4" y="202" text-anchor="middle">수</text><g class="hit" tabindex="0" data-tip="10/22 (목) 일간|신규 없음|발송함"><rect x="410.5" y="22" width="22.1" height="148" fill="transparent"/><circle class="zero" cx="421.6" cy="164.0" r="4"/></g><g class="hit" tabindex="0" data-tip="10/23 (금) 일간|신규 1편|피지컬 AI 0 · 미분류 0"><rect x="432.7" y="22" width="22.1" height="148" fill="transparent"/><path class="m1" d="M436.9,170.0 v-0.9 a4.0,4.0 0 0 1 4.0,-4.0 h5.7 a4.0,4.0 0 0 1 4.0,4.0 v0.9 z"/></g><text class="val" x="443.7" y="160.1" text-anchor="middle">1</text><text class="tick" x="443.7" y="188" text-anchor="middle">10/23</text><text class="tick sub" x="443.7" y="202" text-anchor="middle">금</text><g class="hit" tabindex="0" data-tip="10/24 (토) 일간|신규 없음|발송함"><rect x="454.8" y="22" width="22.1" height="148" fill="transparent"/><circle class="zero" cx="465.9" cy="164.0" r="4"/></g><g class="hit" tabindex="0" data-tip="10/25 (일) 일간|신규 없음|발송함"><rect x="477.0" y="22" width="22.1" height="148" fill="transparent"/><circle class="zero" cx="488.0" cy="164.0" r="4"/></g><text class="tick" x="488.0" y="188" text-anchor="middle">10/25</text><text class="tick sub" x="488.0" y="202" text-anchor="middle">일</text><g class="hit" tabindex="0" data-tip="10/26 (월) 일간|신규 없음|발송함"><rect x="499.1" y="22" width="22.1" height="148" fill="transparent"/><circle class="zero" cx="510.2" cy="164.0" r="4"/></g><g class="hit" tabindex="0" data-tip="10/27 (화) 일간|신규 없음|발송함"><rect x="521.3" y="22" width="22.1" height="148" fill="transparent"/><circle class="zero" cx="532.3" cy="164.0" r="4"/></g><text class="tick" x="532.3" y="188" text-anchor="middle">10/27</text><text class="tick sub" x="532.3" y="202" text-anchor="middle">화</text><g class="hit" tabindex="0" data-tip="10/28 (수) 일간|신규 4편|피지컬 AI 4 · 미분류 1"><rect x="543.4" y="22" width="22.1" height="148" fill="transparent"/><path class="m1" d="M547.6,170.0 v-15.7 a4.0,4.0 0 0 1 4.0,-4.0 h5.7 a4.0,4.0 0 0 1 4.0,4.0 v15.7 z"/></g><text class="val" x="554.5" y="145.3" text-anchor="middle">4</text><g class="hit" tabindex="0" data-tip="10/29 (목) 일간|신규 27편|피지컬 AI 5 · 미분류 3"><rect x="565.6" y="22" width="22.1" height="148" fill="transparent"/><path class="m1" d="M569.8,170.0 v-129.2 a4.0,4.0 0 0 1 4.0,-4.0 h5.7 a4.0,4.0 0 0 1 4.0,4.0 v129.2 z"/></g><text class="val" x="576.6" y="31.8" text-anchor="middle">27</text><text class="tick" x="576.6" y="188" text-anchor="middle">10/29</text><text class="tick sub" x="576.6" y="202" text-anchor="middle">목</text><g class="hit" tabindex="0" data-tip="10/30 (금) 일간|신규 없음|발송함"><rect x="587.7" y="22" width="22.1" height="148" fill="transparent"/><circle class="zero" cx="598.8" cy="164.0" r="4"/></g><g class="hit" tabindex="0" data-tip="10/31 (토) 일간|신규 2편|피지컬 AI 1 · 미분류 1"><rect x="609.9" y="22" width="22.1" height="148" fill="transparent"/><path class="m1" d="M614.1,170.0 v-5.9 a4.0,4.0 0 0 1 4.0,-4.0 h5.7 a4.0,4.0 0 0 1 4.0,4.0 v5.9 z"/></g><text class="val" x="620.9" y="155.1" text-anchor="middle">2</text><text class="tick" x="620.9" y="188" text-anchor="middle">10/31</text><text class="tick sub" x="620.9" y="202" text-anchor="middle">토</text><line class="base" x1="34" x2="632" y1="170" y2="170"/></svg>
+  </section>
+
+  <section class="card">
+    <h2>발송 기록</h2>
+    <p class="cap">최근 발송이 위 · 일간은 개인 채널, 주간·월간은 공동연구 채널에도 발송</p>
+    <div class="scroll"><table class="list">
+      <tr><th>날짜</th><th>종류</th><th>요약</th><th>피지컬 AI</th><th>게재처</th><th>확인 필요</th><th>받는 곳</th></tr>
+      <tr><td class="num">2026-10-31 (토)</td><td><span class="kind d">일간</span></td><td>신규 2편</td><td class="num">1</td><td><div class="chips"><span class="chip">CAAI TIT 1</span><span class="chip">T-RO 1</span></div></td><td class="issue">AAAI (2026-09): RuntimeError: https://ojs.aaai.org/index.php/AAAI/issue/archive 실패 (HTTP 503 또는 · 自动化学报 (2026-09): RuntimeError: https://www.aas.net.cn/cn/article/2026/9 실패 (HTTP 502 또는 가로채기) · ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요 · AAAI (2026-10): RuntimeError: https://ojs.aaai.org/index.php/AAAI/issue/archive 실패 (HTTP 503 또는 · 自动化学报 (2026-10): RuntimeError: https://www.aas.net.cn/cn/article/2026/10 실패 (HTTP 502 또는 가로채기)</td><td class="to">개인 채널</td></tr><tr><td class="num">2026-10-30 (금)</td><td><span class="kind d">일간</span></td><td>신규 없음</td><td class="num"></td><td><div class="chips"></div></td><td class="issue">ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</td><td class="to">개인 채널</td></tr><tr><td class="num">2026-10-29 (목)</td><td><span class="kind d">일간</span></td><td>신규 27편</td><td class="num">5</td><td><div class="chips"><span class="chip">JAS 26</span><span class="chip">T-RO 1</span></div></td><td class="issue">ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</td><td class="to">개인 채널</td></tr><tr><td class="num">2026-10-28 (수)</td><td><span class="kind d">일간</span></td><td>신규 4편</td><td class="num">4</td><td><div class="chips"><span class="chip">T-RO 4</span></div></td><td class="issue">ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요 · JAS (2026-09): RuntimeError: https://www.ieee-jas.net/en/article/2026/9 실패 (SSLError) · JAS (2026-10): RuntimeError: https://www.ieee-jas.net/en/article/2026/10 실패 (SSLError)</td><td class="to">개인 채널</td></tr><tr><td class="num">2026-10-27 (화)</td><td><span class="kind d">일간</span></td><td>신규 없음</td><td class="num"></td><td><div class="chips"></div></td><td class="issue">ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요 · JAS (2026-09): RuntimeError: https://www.ieee-jas.net/en/article/2026/9 실패 (SSLError) · JAS (2026-10): RuntimeError: https://www.ieee-jas.net/en/article/2026/10 실패 (SSLError)</td><td class="to">개인 채널</td></tr><tr><td class="num">2026-10-26 (월)</td><td><span class="kind d">일간</span></td><td>신규 없음</td><td class="num"></td><td><div class="chips"></div></td><td class="issue">ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요 · JAS (2026-09): RuntimeError: https://www.ieee-jas.net/en/article/2026/9 실패 (SSLError) · JAS (2026-10): RuntimeError: https://www.ieee-jas.net/en/article/2026/10 실패 (SSLError)</td><td class="to">개인 채널</td></tr><tr><td class="num">2026-W43</td><td><span class="kind w">주간</span></td><td>새 논문 4편</td><td class="num"></td><td><div class="chips"></div></td><td class="issue"></td><td class="to">개인 + 공동연구 채널</td></tr><tr><td class="num">2026-10-25 (일)</td><td><span class="kind d">일간</span></td><td>신규 없음</td><td class="num"></td><td><div class="chips"></div></td><td class="issue">ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요 · JAS (2026-09): RuntimeError: https://www.ieee-jas.net/en/article/2026/9 실패 (SSLError) · JAS (2026-10): RuntimeError: https://www.ieee-jas.net/en/article/2026/10 실패 (SSLError)</td><td class="to">개인 채널</td></tr><tr><td class="num">2026-10-24 (토)</td><td><span class="kind d">일간</span></td><td>신규 없음</td><td class="num"></td><td><div class="chips"></div></td><td class="issue">ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요 · JAS (2026-09): RuntimeError: https://www.ieee-jas.net/en/article/2026/9 실패 (SSLError) · JAS (2026-10): RuntimeError: https://www.ieee-jas.net/en/article/2026/10 실패 (SSLError)</td><td class="to">개인 채널</td></tr><tr><td class="num">2026-10-23 (금)</td><td><span class="kind d">일간</span></td><td>신규 1편</td><td class="num"></td><td><div class="chips"><span class="chip">CAAI TIT 1</span></div></td><td class="issue">ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요 · JAS (2026-09): RuntimeError: https://www.ieee-jas.net/en/article/2026/9 실패 (SSLError) · JAS (2026-10): RuntimeError: https://www.ieee-jas.net/en/article/2026/10 실패 (SSLError)</td><td class="to">개인 채널</td></tr><tr><td class="num">2026-10-22 (목)</td><td><span class="kind d">일간</span></td><td>신규 없음</td><td class="num"></td><td><div class="chips"></div></td><td class="issue">ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요 · JAS (2026-09): RuntimeError: https://www.ieee-jas.net/en/article/2026/9 실패 (SSLError) · JAS (2026-10): RuntimeError: https://www.ieee-jas.net/en/article/2026/10 실패 (SSLError)</td><td class="to">개인 채널</td></tr><tr><td class="num">2026-10-21 (수)</td><td><span class="kind d">일간</span></td><td>신규 없음</td><td class="num"></td><td><div class="chips"></div></td><td class="issue">ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요 · JAS (2026-09): RuntimeError: https://www.ieee-jas.net/en/article/2026/9 실패 (SSLError) · JAS (2026-10): RuntimeError: https://www.ieee-jas.net/en/article/2026/10 실패 (SSLError)</td><td class="to">개인 채널</td></tr><tr><td class="num">2026-10-20 (화)</td><td><span class="kind d">일간</span></td><td>신규 3편</td><td class="num">2</td><td><div class="chips"><span class="chip">T-RO 2</span><span class="chip">SCIS 1</span></div></td><td class="issue">自动化学报 (2026-09): RuntimeError: https://www.aas.net.cn/cn/article/doi/10.16383/j.aas.c250403 실패 (H · ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요 · JAS (2026-09): RuntimeError: https://www.ieee-jas.net/en/article/2026/9 실패 (SSLError) · JAS (2026-10): RuntimeError: https://www.ieee-jas.net/en/article/2026/10 실패 (SSLError)</td><td class="to">개인 채널</td></tr><tr><td class="num">2026-10-19 (월)</td><td><span class="kind d">일간</span></td><td>신규 없음</td><td class="num"></td><td><div class="chips"></div></td><td class="issue">ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</td><td class="to">개인 채널</td></tr><tr><td class="num">2026-W42</td><td><span class="kind w">주간</span></td><td>새 논문 8편</td><td class="num"></td><td><div class="chips"></div></td><td class="issue"></td><td class="to">개인 + 공동연구 채널</td></tr><tr><td class="num">2026-10-18 (일)</td><td><span class="kind d">일간</span></td><td>신규 없음</td><td class="num"></td><td><div class="chips"></div></td><td class="issue">ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</td><td class="to">개인 채널</td></tr><tr><td class="num">2026-10-17 (토)</td><td><span class="kind d">일간</span></td><td>신규 5편</td><td class="num">4</td><td><div class="chips"><span class="chip">T-RO 5</span></div></td><td class="issue">ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</td><td class="to">개인 채널</td></tr><tr><td class="num">2026-10-16 (금)</td><td><span class="kind d">일간</span></td><td>신규 없음</td><td class="num"></td><td><div class="chips"></div></td><td class="issue">ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</td><td class="to">개인 채널</td></tr><tr><td class="num">2026-10-15 (목)</td><td><span class="kind d">일간</span></td><td>신규 없음</td><td class="num"></td><td><div class="chips"></div></td><td class="issue">ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</td><td class="to">개인 채널</td></tr><tr><td class="num">2026-10-14 (수)</td><td><span class="kind d">일간</span></td><td>신규 없음</td><td class="num"></td><td><div class="chips"></div></td><td class="issue">ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</td><td class="to">개인 채널</td></tr><tr><td class="num">2026-10-13 (화)</td><td><span class="kind d">일간</span></td><td>신규 3편</td><td class="num"></td><td><div class="chips"><span class="chip">CAAI TIT 2</span><span class="chip">T-RO 1</span></div></td><td class="issue">ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</td><td class="to">개인 채널</td></tr><tr><td class="num">2026-10-12 (월)</td><td><span class="kind d">일간</span></td><td>신규 없음</td><td class="num"></td><td><div class="chips"></div></td><td class="issue">ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</td><td class="to">개인 채널</td></tr><tr><td class="num">2026-W41</td><td><span class="kind w">주간</span></td><td>새 논문 19편</td><td class="num"></td><td><div class="chips"></div></td><td class="issue"></td><td class="to">개인 + 공동연구 채널</td></tr><tr><td class="num">2026-10-11 (일)</td><td><span class="kind d">일간</span></td><td>신규 없음</td><td class="num"></td><td><div class="chips"></div></td><td class="issue">ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</td><td class="to">개인 채널</td></tr><tr><td class="num">2026-10-10 (토)</td><td><span class="kind d">일간</span></td><td>신규 8편</td><td class="num">7</td><td><div class="chips"><span class="chip">T-RO 6</span><span class="chip">CAAI TIT 2</span></div></td><td class="issue">ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</td><td class="to">개인 채널</td></tr><tr><td class="num">2026-10-09 (금)</td><td><span class="kind d">일간</span></td><td>신규 9편</td><td class="num">5</td><td><div class="chips"><span class="chip">T-RO 5</span><span class="chip">SCIS 4</span></div></td><td class="issue">ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</td><td class="to">개인 채널</td></tr><tr><td class="num">2026-10-05 (월)</td><td><span class="kind d">일간</span></td><td>신규 없음</td><td class="num"></td><td><div class="chips"></div></td><td class="issue"></td><td class="to">개인 채널</td></tr><tr><td class="num">2026-W40</td><td><span class="kind w">주간</span></td><td>새 논문 434편</td><td class="num"></td><td><div class="chips"></div></td><td class="issue"></td><td class="to">개인 + 공동연구 채널</td></tr><tr><td class="num">2026-09</td><td><span class="kind m">월간</span></td><td>새 논문 225편</td><td class="num"></td><td><div class="chips"></div></td><td class="issue"></td><td class="to">개인 + 공동연구 채널</td></tr>
+    </table></div>
+  </section>
+
+  <section class="card">
+    <h2>지금 확인할 것</h2>
+    <p class="cap">마지막 일간 보고의 "확인 필요"</p>
+    <ul><li>AAAI (2026-09): RuntimeError: https://ojs.aaai.org/index.php/AAAI/issue/archive 실패 (HTTP 503 또는</li><li>自动化学报 (2026-09): RuntimeError: https://www.aas.net.cn/cn/article/2026/9 실패 (HTTP 502 또는 가로채기)</li><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>AAAI (2026-10): RuntimeError: https://ojs.aaai.org/index.php/AAAI/issue/archive 실패 (HTTP 503 또는</li><li>自动化学报 (2026-10): RuntimeError: https://www.aas.net.cn/cn/article/2026/10 실패 (HTTP 502 또는 가로채기)</li></ul>
+  </section>
+
+  <style>
+#reports .rp-cap{margin:2px 0 12px;font-size:13px;color:var(--muted)}
+.rp-tabs{display:flex;gap:4px;border-bottom:1px solid var(--grid);margin-bottom:12px;overflow-x:auto}
+.rp-tab{font:inherit;font-size:14px;font-weight:600;color:var(--ink2);background:none;border:0;border-bottom:2px solid transparent;padding:6px 12px;cursor:pointer;white-space:nowrap}
+.rp-tab span{font-size:12px;font-weight:500;color:var(--muted);margin-left:2px}
+.rp-tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--s1)}
+.rp-tab:focus-visible,.rp-pick:focus-visible,.rp-sel select:focus-visible{outline:2px solid var(--s1);outline-offset:2px}
+.rp-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+.rp-picks{display:flex;flex-wrap:wrap;gap:6px;min-width:0}
+.rp-pick{font:inherit;font-size:12px;font-variant-numeric:tabular-nums;color:var(--ink2);background:var(--surface);border:1px solid var(--grid);border-radius:999px;padding:3px 10px;cursor:pointer}
+.rp-pick:hover{border-color:var(--base)}
+.rp-pick[aria-pressed="true"]{color:var(--surface);background:var(--ink);border-color:var(--ink)}
+.rp-sel{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.rp-sel select{font:inherit;font-size:12px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:6px;padding:3px 6px;max-width:100%}
+.rp-body{min-width:0}
+.rp-doc{border:1px solid var(--ring);border-left:3px solid var(--s1);border-radius:8px;padding:14px 16px;font-size:14px;line-height:1.65;color:var(--ink);overflow-wrap:anywhere;max-width:72ch}
+.rp-doc p{margin:0 0 8px}
+.rp-doc p:last-child{margin-bottom:0}
+.rp-doc .rp-h{font-weight:700}
+.rp-doc em{font-style:normal;color:var(--ink2)}
+.rp-doc ul,.rp-doc ol{margin:0 0 10px;padding-left:20px}
+.rp-doc li{margin:2px 0}
+.rp-doc a{color:var(--ink);border-bottom:1px solid var(--base);text-decoration:none}
+.rp-chip{display:inline-block;font:12px ui-monospace,SFMono-Regular,Consolas,monospace;background:var(--grid);color:var(--ink);border-radius:4px;padding:1px 6px;margin:2px 2px 2px 0;white-space:nowrap}
+.rp-tbl{overflow-x:auto;margin:0 0 10px}
+.rp-tbl table{border-collapse:collapse;font-size:13px}
+.rp-tbl th,.rp-tbl td{text-align:left;padding:4px 8px;border-bottom:1px solid var(--grid);white-space:nowrap}
+.rp-tbl th{color:var(--muted);font-weight:600}
+</style><section class="card" id="reports" aria-labelledby="rp-title"><h2 id="rp-title">Slack 보고</h2><p class="rp-cap">매일·매주·매월 Slack으로 보내는 보고를 그대로 옮겼습니다. 내부 링크는 뺐습니다.</p><div class="rp-tabs" role="tablist" aria-label="보고 주기"><button type="button" class="rp-tab" role="tab" id="rp-t-daily" aria-controls="rp-p-daily" aria-selected="true">일간 <span>24</span></button><button type="button" class="rp-tab" role="tab" id="rp-t-weekly" aria-controls="rp-p-weekly" aria-selected="false" tabindex="-1">주간 <span>4</span></button><button type="button" class="rp-tab" role="tab" id="rp-t-monthly" aria-controls="rp-p-monthly" aria-selected="false" tabindex="-1">월간 <span>1</span></button></div><div class="rp-panel" role="tabpanel" id="rp-p-daily" aria-labelledby="rp-t-daily"><div class="rp-bar"><div class="rp-picks" aria-label="일간 보고 고르기"><button type="button" class="rp-pick" data-rp="2026-10-31" aria-pressed="true">10/31</button><button type="button" class="rp-pick" data-rp="2026-10-30" aria-pressed="false">10/30</button><button type="button" class="rp-pick" data-rp="2026-10-29" aria-pressed="false">10/29</button><button type="button" class="rp-pick" data-rp="2026-10-28" aria-pressed="false">10/28</button><button type="button" class="rp-pick" data-rp="2026-10-27" aria-pressed="false">10/27</button><button type="button" class="rp-pick" data-rp="2026-10-26" aria-pressed="false">10/26</button><button type="button" class="rp-pick" data-rp="2026-10-25" aria-pressed="false">10/25</button><button type="button" class="rp-pick" data-rp="2026-10-24" aria-pressed="false">10/24</button></div><label class="rp-sel"><span>전체</span><select aria-label="일간 보고 날짜"><option value="2026-10-31">2026-10-31 (최신)</option><option value="2026-10-30">2026-10-30</option><option value="2026-10-29">2026-10-29</option><option value="2026-10-28">2026-10-28</option><option value="2026-10-27">2026-10-27</option><option value="2026-10-26">2026-10-26</option><option value="2026-10-25">2026-10-25</option><option value="2026-10-24">2026-10-24</option><option value="2026-10-23">2026-10-23</option><option value="2026-10-22">2026-10-22</option><option value="2026-10-21">2026-10-21</option><option value="2026-10-20">2026-10-20</option><option value="2026-10-19">2026-10-19</option><option value="2026-10-18">2026-10-18</option><option value="2026-10-17">2026-10-17</option><option value="2026-10-16">2026-10-16</option><option value="2026-10-15">2026-10-15</option><option value="2026-10-14">2026-10-14</option><option value="2026-10-13">2026-10-13</option><option value="2026-10-12">2026-10-12</option><option value="2026-10-11">2026-10-11</option><option value="2026-10-10">2026-10-10</option><option value="2026-10-09">2026-10-09</option><option value="2026-10-05">2026-10-05</option></select></label></div><div class="rp-body"><article class="rp-doc" data-rp="2026-10-31"><p><strong>AI 게재처 트래커</strong> | 10/31 (토) 일간</p><p><strong>신규 2편</strong>   피지컬AI 1   미분류 1</p><p><strong>게재처</strong>  <code class="rp-chip">CAAI TIT 1</code>  <code class="rp-chip">T-RO 1</code></p><p><strong>오늘의 주제 키워드</strong></p><ol><li>다목적 최적화  1편</li><li>동적 최적화  1편</li><li>공중 로봇  1편</li><li>압전 구동  1편</li></ol><p><em>중계 대기: 计算机学报</em></p><p><strong>확인 필요</strong></p><ul><li>AAAI (2026-09): RuntimeError: https://ojs.aaai.org/index.php/AAAI/issue/archive 실패 (HTTP 503 또는</li><li>自动化学报 (2026-09): RuntimeError: https://www.aas.net.cn/cn/article/2026/9 실패 (HTTP 502 또는 가로채기)</li><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>AAAI (2026-10): RuntimeError: https://ojs.aaai.org/index.php/AAAI/issue/archive 실패 (HTTP 503 또는</li><li>自动化学报 (2026-10): RuntimeError: https://www.aas.net.cn/cn/article/2026/10 실패 (HTTP 502 또는 가로채기)</li><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li></ul></article><article class="rp-doc" data-rp="2026-10-30" hidden><p><strong>AI 게재처 트래커</strong> | 10/30 (금) 일간</p><p><strong>신규 없음</strong></p><p><em>발행 대기: 自动化学报</em><br><em>중계 대기: 计算机学报</em></p><p><strong>확인 필요</strong></p><ul><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li></ul></article><article class="rp-doc" data-rp="2026-10-29" hidden><p><strong>AI 게재처 트래커</strong> | 10/29 (목) 일간</p><p><strong>신규 27편</strong>   피지컬AI 5   미분류 3</p><p><strong>게재처</strong>  <code class="rp-chip">JAS 26</code>  <code class="rp-chip">T-RO 1</code></p><p><strong>오늘의 주제 키워드</strong></p><ol><li>다중 에이전트 시스템  6편</li><li>강화학습  4편</li><li>비선형 시스템  4편</li><li>로봇 조작  3편</li><li>분산 최적화  3편</li></ol><p><em>발행 대기: 自动化学报</em><br><em>중계 대기: 计算机学报</em></p><p><strong>확인 필요</strong></p><ul><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li></ul></article><article class="rp-doc" data-rp="2026-10-28" hidden><p><strong>AI 게재처 트래커</strong> | 10/28 (수) 일간</p><p><strong>신규 4편</strong>   피지컬AI 4   미분류 1</p><p><strong>게재처</strong>  <code class="rp-chip">T-RO 4</code></p><p><strong>오늘의 주제 키워드</strong></p><p><em>발행 대기: 自动化学报</em><br><em>중계 대기: 计算机学报</em></p><p><strong>확인 필요</strong></p><ul><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>JAS (2026-09): RuntimeError: https://www.ieee-jas.net/en/article/2026/9 실패 (SSLError)</li><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>JAS (2026-10): RuntimeError: https://www.ieee-jas.net/en/article/2026/10 실패 (SSLError)</li></ul></article><article class="rp-doc" data-rp="2026-10-27" hidden><p><strong>AI 게재처 트래커</strong> | 10/27 (화) 일간</p><p><strong>신규 없음</strong></p><p><em>발행 대기: 自动化学报</em><br><em>중계 대기: 计算机学报</em></p><p><strong>확인 필요</strong></p><ul><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>JAS (2026-09): RuntimeError: https://www.ieee-jas.net/en/article/2026/9 실패 (SSLError)</li><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>JAS (2026-10): RuntimeError: https://www.ieee-jas.net/en/article/2026/10 실패 (SSLError)</li></ul></article><article class="rp-doc" data-rp="2026-10-26" hidden><p><strong>AI 게재처 트래커</strong> | 10/26 (월) 일간</p><p><strong>신규 없음</strong></p><p><em>발행 대기: 自动化学报</em><br><em>중계 대기: 计算机学报</em></p><p><strong>확인 필요</strong></p><ul><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>JAS (2026-09): RuntimeError: https://www.ieee-jas.net/en/article/2026/9 실패 (SSLError)</li><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>JAS (2026-10): RuntimeError: https://www.ieee-jas.net/en/article/2026/10 실패 (SSLError)</li></ul></article><article class="rp-doc" data-rp="2026-10-25" hidden><p><strong>AI 게재처 트래커</strong> | 10/25 (일) 일간</p><p><strong>신규 없음</strong></p><p><em>발행 대기: 自动化学报</em><br><em>중계 대기: 计算机学报</em></p><p><strong>확인 필요</strong></p><ul><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>JAS (2026-09): RuntimeError: https://www.ieee-jas.net/en/article/2026/9 실패 (SSLError)</li><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>JAS (2026-10): RuntimeError: https://www.ieee-jas.net/en/article/2026/10 실패 (SSLError)</li></ul></article><article class="rp-doc" data-rp="2026-10-24" hidden><p><strong>AI 게재처 트래커</strong> | 10/24 (토) 일간</p><p><strong>신규 없음</strong></p><p><em>발행 대기: 自动化学报</em><br><em>중계 대기: 计算机学报</em></p><p><strong>확인 필요</strong></p><ul><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>JAS (2026-09): RuntimeError: https://www.ieee-jas.net/en/article/2026/9 실패 (SSLError)</li><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>JAS (2026-10): RuntimeError: https://www.ieee-jas.net/en/article/2026/10 실패 (SSLError)</li></ul></article><article class="rp-doc" data-rp="2026-10-23" hidden><p><strong>AI 게재처 트래커</strong> | 10/23 (금) 일간</p><p><strong>신규 1편</strong>   피지컬AI 0   미분류 0</p><p><strong>게재처</strong>  <code class="rp-chip">CAAI TIT 1</code></p><p><strong>오늘의 주제 키워드</strong></p><p><em>발행 대기: 自动化学报</em><br><em>중계 대기: 计算机学报</em></p><p><strong>확인 필요</strong></p><ul><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>JAS (2026-09): RuntimeError: https://www.ieee-jas.net/en/article/2026/9 실패 (SSLError)</li><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>JAS (2026-10): RuntimeError: https://www.ieee-jas.net/en/article/2026/10 실패 (SSLError)</li></ul></article><article class="rp-doc" data-rp="2026-10-22" hidden><p><strong>AI 게재처 트래커</strong> | 10/22 (목) 일간</p><p><strong>신규 없음</strong></p><p><em>발행 대기: 自动化学报</em><br><em>중계 대기: 计算机学报</em></p><p><strong>확인 필요</strong></p><ul><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>JAS (2026-09): RuntimeError: https://www.ieee-jas.net/en/article/2026/9 실패 (SSLError)</li><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>JAS (2026-10): RuntimeError: https://www.ieee-jas.net/en/article/2026/10 실패 (SSLError)</li></ul></article><article class="rp-doc" data-rp="2026-10-21" hidden><p><strong>AI 게재처 트래커</strong> | 10/21 (수) 일간</p><p><strong>신규 없음</strong></p><p><em>발행 대기: 自动化学报</em><br><em>중계 대기: 计算机学报</em></p><p><strong>확인 필요</strong></p><ul><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>JAS (2026-09): RuntimeError: https://www.ieee-jas.net/en/article/2026/9 실패 (SSLError)</li><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>JAS (2026-10): RuntimeError: https://www.ieee-jas.net/en/article/2026/10 실패 (SSLError)</li></ul></article><article class="rp-doc" data-rp="2026-10-20" hidden><p><strong>AI 게재처 트래커</strong> | 10/20 (화) 일간</p><p><strong>신규 3편</strong>   피지컬AI 2   미분류 0</p><p><strong>게재처</strong>  <code class="rp-chip">T-RO 2</code>  <code class="rp-chip">SCIS 1</code></p><p><strong>오늘의 주제 키워드</strong></p><ol><li>상태 추정  1편</li><li>개인정보 보호  1편</li><li>SLAM  1편</li><li>3D 가우시안 스플래팅  1편</li><li>모션 플래닝  1편</li></ol><p><em>발행 대기: 自动化学报</em><br><em>중계 대기: 计算机学报</em></p><p><strong>확인 필요</strong></p><ul><li>自动化学报 (2026-09): RuntimeError: https://www.aas.net.cn/cn/article/doi/10.16383/j.aas.c250403 실패 (H</li><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>JAS (2026-09): RuntimeError: https://www.ieee-jas.net/en/article/2026/9 실패 (SSLError)</li><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>JAS (2026-10): RuntimeError: https://www.ieee-jas.net/en/article/2026/10 실패 (SSLError)</li></ul></article><article class="rp-doc" data-rp="2026-10-19" hidden><p><strong>AI 게재처 트래커</strong> | 10/19 (월) 일간</p><p><strong>신규 없음</strong></p><p><em>발행 대기: JAS, 自动化学报</em><br><em>중계 대기: 计算机学报</em></p><p><strong>확인 필요</strong></p><ul><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li></ul></article><article class="rp-doc" data-rp="2026-10-18" hidden><p><strong>AI 게재처 트래커</strong> | 10/18 (일) 일간</p><p><strong>신규 없음</strong></p><p><em>발행 대기: JAS, 自动化学报</em><br><em>중계 대기: 计算机学报</em></p><p><strong>확인 필요</strong></p><ul><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li></ul></article><article class="rp-doc" data-rp="2026-10-17" hidden><p><strong>AI 게재처 트래커</strong> | 10/17 (토) 일간</p><p><strong>신규 5편</strong>   피지컬AI 4   미분류 0</p><p><strong>게재처</strong>  <code class="rp-chip">T-RO 5</code></p><p><strong>오늘의 주제 키워드</strong></p><ol><li>재활 로봇  1편</li><li>궤적 계획  1편</li><li>하이브리드 시스템  1편</li><li>로봇 운동 계획  1편</li><li>수술 로봇  1편</li></ol><p><em>발행 대기: JAS, 自动化学报</em><br><em>중계 대기: 计算机学报</em></p><p><strong>확인 필요</strong></p><ul><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li></ul></article><article class="rp-doc" data-rp="2026-10-16" hidden><p><strong>AI 게재처 트래커</strong> | 10/16 (금) 일간</p><p><strong>신규 없음</strong></p><p><em>발행 대기: JAS, 自动化学报</em><br><em>중계 대기: 计算机学报</em></p><p><strong>확인 필요</strong></p><ul><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li></ul></article><article class="rp-doc" data-rp="2026-10-15" hidden><p><strong>AI 게재처 트래커</strong> | 10/15 (목) 일간</p><p><strong>신규 없음</strong></p><p><em>발행 대기: JAS, 自动化学报</em><br><em>중계 대기: 计算机学报</em></p><p><strong>확인 필요</strong></p><ul><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li></ul></article><article class="rp-doc" data-rp="2026-10-14" hidden><p><strong>AI 게재처 트래커</strong> | 10/14 (수) 일간</p><p><strong>신규 없음</strong></p><p><em>발행 대기: JAS, 自动化学报</em><br><em>중계 대기: 计算机学报</em></p><p><strong>확인 필요</strong></p><ul><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li></ul></article><article class="rp-doc" data-rp="2026-10-13" hidden><p><strong>AI 게재처 트래커</strong> | 10/13 (화) 일간</p><p><strong>신규 3편</strong>   피지컬AI 0   미분류 1</p><p><strong>게재처</strong>  <code class="rp-chip">CAAI TIT 2</code>  <code class="rp-chip">T-RO 1</code></p><p><strong>오늘의 주제 키워드</strong></p><ol><li>프라이버시 보호  1편</li><li>검증 가능 계산  1편</li><li>의료 영상 분할  1편</li><li>파운데이션 모델  1편</li><li>뉴로심볼릭 학습  1편</li></ol><p><em>발행 대기: JAS, 自动化学报</em><br><em>중계 대기: 计算机学报</em></p><p><strong>확인 필요</strong></p><ul><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li></ul></article><article class="rp-doc" data-rp="2026-10-12" hidden><p><strong>AI 게재처 트래커</strong> | 10/12 (월) 일간</p><p><strong>신규 없음</strong></p><p><em>발행 대기: JAS, 自动化学报</em><br><em>중계 대기: 计算机学报</em></p><p><strong>확인 필요</strong></p><ul><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li></ul></article><article class="rp-doc" data-rp="2026-10-11" hidden><p><strong>AI 게재처 트래커</strong> | 10/11 (일) 일간</p><p><strong>신규 없음</strong></p><p><em>발행 대기: JAS, 自动化学报</em><br><em>중계 대기: 计算机学报</em></p><p><strong>확인 필요</strong></p><ul><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li></ul></article><article class="rp-doc" data-rp="2026-10-10" hidden><p><strong>AI 게재처 트래커</strong> | 10/10 (토) 일간</p><p><strong>신규 8편</strong>   피지컬AI 7   미분류 2</p><p><strong>게재처</strong>  <code class="rp-chip">T-RO 6</code>  <code class="rp-chip">CAAI TIT 2</code></p><p><strong>오늘의 주제 키워드</strong></p><ol><li>다중 로봇 시스템  2편</li><li>상태 추정  2편</li><li>진화 알고리즘  1편</li><li>궤적 계획  1편</li><li>그래프 알고리즘  1편</li></ol><p><em>발행 대기: JAS, 自动化学报</em><br><em>중계 대기: 计算机学报</em></p><p><strong>확인 필요</strong></p><ul><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li></ul></article><article class="rp-doc" data-rp="2026-10-09" hidden><p><strong>AI 게재처 트래커</strong> | 10/09 (금) 일간</p><p><strong>신규 9편</strong>   피지컬AI 5   미분류 1</p><p><strong>게재처</strong>  <code class="rp-chip">T-RO 5</code>  <code class="rp-chip">SCIS 4</code></p><p><strong>오늘의 주제 키워드</strong></p><ol><li>상태 추정  1편</li><li>개인정보 보호  1편</li><li>매니폴드 학습  1편</li><li>비선형 차원 축소  1편</li><li>AI 기반 과학연구  1편</li></ol><p><em>발행 대기: JAS, 自动化学报</em><br><em>중계 대기: 计算机学报</em></p><p><strong>확인 필요</strong></p><ul><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li><li>ICML: 신규 논문집 2026 감지. 수집기 추가 후 재실행 필요</li></ul></article><article class="rp-doc" data-rp="2026-10-05" hidden><p><strong>AI 게재처 트래커</strong> | 10/05 (월) 일간</p><p><strong>신규 없음</strong></p><p><em>발행 대기: CAAI TIT, JAS, T-RO, 自动化学报</em><br><em>중계 대기: 计算机学报</em></p></article></div></div><div class="rp-panel" role="tabpanel" id="rp-p-weekly" aria-labelledby="rp-t-weekly" hidden><div class="rp-bar"><div class="rp-picks" aria-label="주간 보고 고르기"><button type="button" class="rp-pick" data-rp="2026-W43" aria-pressed="true">W43</button><button type="button" class="rp-pick" data-rp="2026-W42" aria-pressed="false">W42</button><button type="button" class="rp-pick" data-rp="2026-W41" aria-pressed="false">W41</button><button type="button" class="rp-pick" data-rp="2026-W40" aria-pressed="false">W40</button></div><label class="rp-sel"><span>전체</span><select aria-label="주간 보고 날짜"><option value="2026-W43">2026-W43 (최신)</option><option value="2026-W42">2026-W42</option><option value="2026-W41">2026-W41</option><option value="2026-W40">2026-W40</option></select></label></div><div class="rp-body"><article class="rp-doc" data-rp="2026-W43"><p><strong>AI 게재처 트래커</strong> | 주간 2026-W43 (10/19~10/25)</p><p><strong>새 논문 4편</strong> (전주 8 ▼4)   피지컬AI 2 (▼3)   누적 441편</p><p><strong>뜨는 주제</strong></p><p>없음</p><p><strong>식는 주제</strong></p><p>▼ 의료 영상 분할  0편 (-1)<br>▼ 로봇 조작  0편 (-1)<br>▼ 로봇 운동 계획  0편 (-1)</p><p><strong>게재처</strong>  <code class="rp-chip">T-RO 2</code>  <code class="rp-chip">SCIS 1</code>  <code class="rp-chip">CAAI TIT 1</code></p></article><article class="rp-doc" data-rp="2026-W42" hidden><p><strong>AI 게재처 트래커</strong> | 주간 2026-W42 (10/12~10/18)</p><p><strong>새 논문 8편</strong> (전주 19 ▼11)   피지컬AI 5 (▼9)   누적 460편</p><p><strong>뜨는 주제</strong></p><p>없음</p><p><strong>식는 주제</strong></p><p>▼ 다중 로봇 시스템  0편 (-3)<br>▼ 상태 추정  0편 (-3)<br>▼ 거대 언어 모델  0편 (-2)</p><p><strong>게재처</strong>  <code class="rp-chip">T-RO 6</code>  <code class="rp-chip">CAAI TIT 2</code></p></article><article class="rp-doc" data-rp="2026-W41" hidden><p><strong>AI 게재처 트래커</strong> | 주간 2026-W41 (10/05~10/11)</p><p><strong>새 논문 19편</strong> (전주 433 ▼414)   피지컬AI 14 (▼48)   누적 452편</p><p><strong>뜨는 주제</strong></p><p>▲ 다중 로봇 시스템  3편 (+1)</p><p><strong>식는 주제</strong></p><p>▼ 대규모 언어 모델  0편 (-18)<br>▼ 비전-언어 모델  0편 (-17)<br>▼ 확산 모델  0편 (-16)</p><p><strong>게재처</strong>  <code class="rp-chip">T-RO 11</code>  <code class="rp-chip">CAAI TIT 4</code>  <code class="rp-chip">SCIS 4</code></p></article><article class="rp-doc" data-rp="2026-W40" hidden><p><strong>AI 게재처 트래커</strong> | 주간 2026-W40 (09/28~10/04)</p><p><strong>새 논문 434편</strong>   피지컬AI 62   누적 436편</p><p><em>추적 시작 주라 전주 비교 없음. 다음 주부터 증감 표시</em></p><p><strong>이번 주 상위 주제</strong></p><ol><li>대규모 언어 모델  18편</li><li>비전-언어 모델  17편</li><li>확산 모델  16편</li><li>자율주행  13편</li><li>강화학습  12편</li></ol><p><strong>게재처</strong>  <code class="rp-chip">TPAMI 229</code>  <code class="rp-chip">SCIS 85</code>  <code class="rp-chip">软件学报 29</code>  <code class="rp-chip">T-RO 24</code>  <code class="rp-chip">JAS 23</code>  <code class="rp-chip">自动化学报 18</code>  <code class="rp-chip">CAAI TIT 13</code>  <code class="rp-chip">计算机学报 13</code></p></article></div></div><div class="rp-panel" role="tabpanel" id="rp-p-monthly" aria-labelledby="rp-t-monthly" hidden><div class="rp-bar"><div class="rp-picks" aria-label="월간 보고 고르기"><button type="button" class="rp-pick" data-rp="2026-09" aria-pressed="true">2026-09</button></div><label class="rp-sel"><span>전체</span><select aria-label="월간 보고 날짜"><option value="2026-09">2026-09 (최신)</option></select></label></div><div class="rp-body"><article class="rp-doc" data-rp="2026-09"><p><strong>AI 게재처 트래커</strong> | 월간 2026-09</p><p><strong>논문 225편</strong>   피지컬AI 42편, 18.7%</p><p><strong>이달의 주제 TOP 5</strong></p><ol><li>강화학습  9편 (4.0%)</li><li>다중 에이전트 시스템  7편 (3.1%)</li><li>프라이버시 보호  7편 (3.1%)</li><li>대조 학습  6편 (2.7%)</li><li>엣지 컴퓨팅  6편 (2.7%)</li></ol><p><strong>게재처</strong>  <code class="rp-chip">TPAMI 68</code>  <code class="rp-chip">SCIS 51</code>  <code class="rp-chip">T-RO 24</code>  <code class="rp-chip">JAS 23</code>  <code class="rp-chip">自动化学报 18</code>  <code class="rp-chip">软件学报 15</code>  <code class="rp-chip">CAAI TIT 13</code>  <code class="rp-chip">计算机学报 13</code></p></article></div></div></section><script>
+(function(){
+  var root=document.getElementById("reports");if(!root)return;
+  var tabs=[].slice.call(root.querySelectorAll(".rp-tab"));
+  function selectTab(t){
+    tabs.forEach(function(x){var on=x===t;x.setAttribute("aria-selected",on);x.tabIndex=on?0:-1;
+      document.getElementById(x.getAttribute("aria-controls")).hidden=!on;});
+  }
+  tabs.forEach(function(t,i){
+    t.addEventListener("click",function(){selectTab(t);});
+    t.addEventListener("keydown",function(e){
+      var d=e.key==="ArrowRight"?1:e.key==="ArrowLeft"?-1:0;if(!d)return;
+      var n=tabs[(i+d+tabs.length)%tabs.length];selectTab(n);n.focus();e.preventDefault();});
+  });
+  [].forEach.call(root.querySelectorAll(".rp-panel"),function(p){
+    var sel=p.querySelector("select");
+    function show(id){
+      [].forEach.call(p.querySelectorAll(".rp-doc"),function(d){d.hidden=d.getAttribute("data-rp")!==id;});
+      [].forEach.call(p.querySelectorAll(".rp-pick"),function(b){b.setAttribute("aria-pressed",b.getAttribute("data-rp")===id);});
+      if(sel.value!==id)sel.value=id;
+    }
+    sel.addEventListener("change",function(){show(sel.value);});
+    [].forEach.call(p.querySelectorAll(".rp-pick"),function(b){b.addEventListener("click",function(){show(b.getAttribute("data-rp"));});});
+  });
+})();
+</script>
+
+  <footer>발송 본문은 저장소에 남은 보고 파일 기준입니다. Slack 쪽 실제 수신 여부는 이 페이지에서 확인할 수 없습니다.</footer>
+</main>
+<div id="tip" hidden></div>
+<script>
+(function(){
+  var tip=document.getElementById("tip");
+  function show(el,x,y){
+    var parts=el.getAttribute("data-tip").split("|");
+    tip.replaceChildren();
+    parts.slice(1).forEach(function(p,i){var b=document.createElement(i===0?"b":"div");b.textContent=p;tip.appendChild(b);});
+    var h=document.createElement("span");h.textContent=parts[0];tip.appendChild(h);
+    tip.hidden=false;
+    var r=tip.getBoundingClientRect(),px=Math.min(x+14,innerWidth-r.width-8),py=y-r.height-12;
+    if(py<8)py=y+18;
+    tip.style.left=Math.max(8,px)+"px";tip.style.top=py+"px";
+  }
+  document.addEventListener("pointermove",function(e){var el=e.target.closest&&e.target.closest("[data-tip]");if(el)show(el,e.clientX,e.clientY);else tip.hidden=true;});
+  document.addEventListener("focusin",function(e){var el=e.target.closest&&e.target.closest("[data-tip]");if(!el)return;var r=el.getBoundingClientRect();show(el,r.left+r.width/2,r.top);});
+  document.addEventListener("focusout",function(){tip.hidden=true;});
+  document.addEventListener("scroll",function(){tip.hidden=true;},{passive:true});
+
+  function setMonth(m){
+    var ok=false;
+    document.querySelectorAll(".month").forEach(function(s){var on=s.getAttribute("data-month")===m;s.hidden=!on;ok=ok||on;});
+    if(!ok)return false;
+    document.querySelectorAll(".seg").forEach(function(b){b.setAttribute("aria-pressed",b.getAttribute("data-m")===m);});
+    return true;
+  }
+  function setTab(t){
+    document.querySelectorAll("[data-panel]").forEach(function(p){p.hidden=p.getAttribute("data-panel")!==t;});
+    document.querySelectorAll(".tab").forEach(function(b){b.setAttribute("aria-selected",b.getAttribute("data-tab")===t);});
+  }
+  document.querySelectorAll(".seg").forEach(function(b){b.addEventListener("click",function(){var m=b.getAttribute("data-m");setMonth(m);history.replaceState(null,"","#m"+m.replace("-",""));});});
+  document.querySelectorAll(".tab").forEach(function(b){b.addEventListener("click",function(){var t=b.getAttribute("data-tab");setTab(t);history.replaceState(null,"","#"+t);});});
+  var h=location.hash.slice(1);
+  if(h==="reports"&&document.querySelector('[data-tab="reports"]'))setTab("reports");
+  else if(/^m\d{6}$/.test(h))setMonth(h.slice(1,5)+"-"+h.slice(5));
+})();
+</script>
+</body>
+</html>
