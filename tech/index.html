@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>기술 | AI 게재처 트래커</title>
+<style>
+:root{
+  --page:#f9f9f7;--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#898781;--grid:#e1e0d9;--base:#c3c2b7;
+  --ring:rgba(11,11,11,.10);--s1:#2a78d6;--s2:#eb6834;--up:#006300;--tipbg:#0b0b0b;--tipfg:#f0efec;
+  color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --page:#0d0d0d;--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#898781;--grid:#2c2c2a;--base:#383835;
+  --ring:rgba(255,255,255,.10);--s1:#3987e5;--s2:#d95926;--up:#0ca30c;--tipbg:#f0efec;--tipfg:#0b0b0b;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --page:#0d0d0d;--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#898781;--grid:#2c2c2a;--base:#383835;
+  --ring:rgba(255,255,255,.10);--s1:#3987e5;--s2:#d95926;--up:#0ca30c;--tipbg:#f0efec;--tipfg:#0b0b0b;color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  background:radial-gradient(900px 380px at 0% -6%,color-mix(in srgb,var(--s1) 12%,transparent),transparent 70%),radial-gradient(700px 340px at 100% -10%,color-mix(in srgb,var(--s2) 9%,transparent),transparent 70%),var(--page);background-repeat:no-repeat}
+main{max-width:1120px;margin:0 auto;padding:36px max(16px,env(safe-area-inset-right,0px)) 64px max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:20px}
+.month,.panel{display:flex;flex-direction:column;gap:20px}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:8px 24px}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--s1)}
+h1{margin:6px 0 6px;font-size:32px;line-height:1.25;letter-spacing:-.02em;text-wrap:balance}
+.sub{margin:0;color:var(--ink2);max-width:62ch}
+.stamp{font-size:13px;color:var(--muted);text-align:right;line-height:1.5}
+.stamp b{color:var(--up);font-weight:600;animation:blink 2.4s ease-in-out infinite}
+.site{display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid var(--grid)}
+.site a{font-size:15px;font-weight:600;color:var(--muted);text-decoration:none;padding:8px 14px;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s}
+.site a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--s1)}
+.site a:hover{color:var(--ink)}
+.site a:focus-visible{outline:2px solid var(--s1);outline-offset:2px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--grid)}
+.tab{font:600 14px inherit;font-family:inherit;background:none;border:0;border-bottom:2px solid transparent;color:var(--muted);padding:8px 12px;cursor:pointer;margin-bottom:-1px}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--s1)}
+.filters{display:flex;flex-wrap:wrap;align-items:center;gap:8px;position:sticky;top:0;z-index:5;padding:10px 0;margin:-10px 0;background:color-mix(in srgb,var(--page) 88%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.filters .lab{font-size:14px;font-weight:600;color:var(--muted);margin-right:4px}
+.seg{font:600 14px inherit;font-family:inherit;color:var(--ink2);background:var(--surface);border:1px solid var(--ring);border-radius:999px;padding:6px 16px;cursor:pointer;font-variant-numeric:tabular-nums;transition:background .15s,color .15s,box-shadow .15s}
+.seg:hover{box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.seg[aria-pressed="true"]{background:var(--ink);color:var(--page);border-color:var(--ink)}
+.pulse{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--up);margin-left:7px;vertical-align:1px;animation:pulse 1.8s ease-out infinite}
+.live{display:inline-block;font-size:11px;font-weight:700;color:var(--up);background:color-mix(in srgb,var(--up) 12%,transparent);border-radius:999px;padding:0 7px;margin-right:4px}
+.tab:focus-visible,.seg:focus-visible,[data-tip]:focus-visible{outline:2px solid var(--s1);outline-offset:2px}
+.card{background:var(--surface);border:1px solid var(--ring);border-radius:16px;padding:20px 22px;min-width:0;box-shadow:0 1px 2px rgba(0,0,0,.04);transition:box-shadow .2s}
+.card:hover{box-shadow:0 10px 28px rgba(0,0,0,.07)}
+.card h2{margin:0;font-size:18px;letter-spacing:-.01em}
+.card .cap{margin:2px 0 16px;font-size:14px;color:var(--muted)}
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+@media (max-width:900px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{animation:up .5s cubic-bezier(.2,.7,.2,1) backwards}
+.kpi:nth-child(2){animation-delay:60ms}.kpi:nth-child(3){animation-delay:120ms}.kpi:nth-child(4){animation-delay:180ms}.kpi:nth-child(5){animation-delay:240ms}
+.kpi .l{font-size:14px;font-weight:600;color:var(--ink2)}
+.kpi .v{font-size:38px;line-height:1.2;font-weight:800;letter-spacing:-.02em;margin:4px 0 2px}
+.kpi .v small{font-size:16px;font-weight:600;color:var(--ink2);margin-left:3px}
+.delta{font-size:12.5px;color:var(--muted)}
+.share{height:8px;border-radius:4px;background:var(--grid);overflow:hidden;margin-top:8px}
+.share i{display:block;height:100%;border-radius:4px}
+.share i,.pb i,.kbar i,.kw-bar i{transform-origin:left;animation:grow .8s cubic-bezier(.2,.7,.2,1) backwards}
+.cut{-webkit-mask:linear-gradient(90deg,#000 calc(100% - 18px),transparent 0 calc(100% - 13px),#000 0);mask:linear-gradient(90deg,#000 calc(100% - 18px),transparent 0 calc(100% - 13px),#000 0)}
+.pb em{font-style:normal;font-size:11px;color:var(--muted);margin-left:4px;white-space:nowrap}
+@keyframes up{from{opacity:0;transform:translateY(10px)}}
+@keyframes grow{from{transform:scaleX(0)}}
+@keyframes rise{from{transform:scaleY(0)}}
+@keyframes fade{from{opacity:0}}
+@keyframes blink{50%{opacity:.35}}
+@keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--up) 55%,transparent)}70%,100%{box-shadow:0 0 0 7px transparent}}
+.row2b{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+@media (max-width:900px){.row2b{grid-template-columns:1fr}}
+svg{width:100%;height:auto;display:block;overflow:visible}
+.grid{stroke:var(--grid);stroke-width:1}
+.base{stroke:var(--base);stroke-width:1}
+.tick{fill:var(--muted);font-size:11px;font-variant-numeric:tabular-nums}
+.tick.sub{font-size:10px}
+.val{fill:var(--ink);font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;animation:fade .5s .45s backwards}
+.m1{fill:var(--s1);background:var(--s1)}
+.m2{fill:var(--s2);background:var(--s2)}
+.hit{outline:none}
+.hit path{transform-box:fill-box;transform-origin:50% 100%;animation:rise .8s cubic-bezier(.2,.7,.2,1) backwards;transition:filter .15s}
+.hit:hover path,.hit:focus path{filter:brightness(1.12) drop-shadow(0 3px 6px color-mix(in srgb,var(--s1) 40%,transparent))}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--ink2);margin:-6px 0 12px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:2px;display:inline-block}
+.prow{display:grid;grid-template-columns:minmax(72px,30%) 1fr;gap:10px;align-items:center;padding:5px 4px;border-radius:6px;outline:none}
+.prow:hover,.prow:focus,.krow:hover,.krow:focus{background:color-mix(in srgb,var(--ink) 5%,transparent)}
+.plab{font-size:13px;line-height:1.3;overflow-wrap:anywhere}
+.pbars{display:flex;flex-direction:column;gap:2px}
+.pb,.kbar{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.pb i,.kbar i{display:block;height:12px;border-radius:0 4px 4px 0;min-width:2px}
+.pb span,.kbar span{min-width:2ch}
+.kw-list{display:flex;flex-direction:column}
+.kw{display:grid;grid-template-columns:28px minmax(0,1fr) minmax(0,1.3fr) minmax(0,1fr) minmax(120px,1.1fr);gap:4px 16px;align-items:center;padding:8px 6px;border-bottom:1px solid var(--grid);outline:none;font-size:14px;line-height:1.35}
+.kw:last-child{border-bottom:0}
+.kw:hover,.kw:focus{background:color-mix(in srgb,var(--ink) 5%,transparent)}
+.kw-head{font-size:12px;font-weight:600;color:var(--muted);padding-top:0}
+.kw-head:hover{background:none}
+.kw-rank{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums;text-align:right}
+.kw:nth-child(-n+4):not(.kw-head) .kw-rank{display:inline-grid;place-items:center;justify-self:end;width:24px;height:24px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;text-align:center}
+.kw:nth-child(-n+4):not(.kw-head) .kw-ko{font-size:15px}
+.kw-ko{font-weight:600;color:var(--ink)}
+.kw-en{color:var(--ink2)}
+.kw-zh{color:var(--ink);font-family:"PingFang SC","Microsoft YaHei","Noto Sans CJK SC","Noto Sans SC",sans-serif}
+.kw-ko,.kw-en,.kw-zh{overflow-wrap:anywhere}
+.kw-bar{display:flex;align-items:center;gap:8px}
+.kw-bar i{display:block;height:12px;border-radius:0 4px 4px 0;min-width:2px}
+.kw-bar b{font-size:13px;font-variant-numeric:tabular-nums}
+@media (max-width:640px){
+  .kw{grid-template-columns:24px minmax(0,1fr) 84px;grid-template-areas:"r ko bar" "r en bar" "r zh bar";gap:2px 10px}
+  .kw-head{display:none}
+  .kw-rank{grid-area:r;align-self:start;padding-top:2px}
+  .kw-ko{grid-area:ko}.kw-en{grid-area:en}.kw-zh{grid-area:zh}.kw-bar{grid-area:bar}
+  .kw-ko::before,.kw-en::before,.kw-zh::before{content:attr(data-l);display:inline-block;width:22px;font-size:10px;font-weight:600;color:var(--muted)}
+}
+.krow{display:grid;grid-template-columns:minmax(0,46%) 1fr;gap:10px;align-items:center;padding:4px;border-radius:6px;outline:none}
+.klab{display:flex;flex-direction:column;line-height:1.25;min-width:0}
+.klab b{font-size:13px;font-weight:600}
+.klab small{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbar i{height:10px}
+.scroll{overflow-x:auto}
+.heat{border-collapse:separate;border-spacing:2px;font-size:12px;font-variant-numeric:tabular-nums;min-width:520px;width:100%}
+.heat th{font-weight:500;color:var(--ink2);text-align:left;padding:4px 6px}
+.heat thead th{vertical-align:bottom;height:96px;padding:0 0 6px}
+.heat thead th span{display:inline-block;writing-mode:vertical-rl;transform:rotate(180deg);max-height:92px;line-height:1.2;font-size:11px;overflow:hidden}
+.heat td{height:30px;text-align:center;border-radius:4px;outline:none}
+.hc{background:color-mix(in srgb,var(--s1) var(--w),var(--surface));color:var(--ink);font-weight:600;animation:fade .6s backwards;transition:transform .12s}
+.hc:hover,.hc:focus{transform:scale(1.08)}
+.hc.hi{color:#fff}
+.hc:hover,.hc:focus{box-shadow:0 0 0 2px var(--ink) inset}
+.hz{background:color-mix(in srgb,var(--grid) 45%,transparent)}
+.ramp{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);margin-top:10px}
+.ramp i{width:120px;height:8px;border-radius:4px;background:linear-gradient(90deg,color-mix(in srgb,var(--s1) 14%,var(--surface)),var(--s1))}
+table.list{width:100%;border-collapse:collapse;font-size:13px}
+.list th,.list td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--grid);vertical-align:top}
+.list th{color:var(--muted);font-weight:600;white-space:nowrap}
+.list td:first-child{white-space:nowrap;font-variant-numeric:tabular-nums}
+.list a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--grid)}
+.list a:hover{border-color:var(--s1)}
+.tag{font-size:11px;font-weight:600;color:var(--s1);border:1px solid currentColor;border-radius:4px;padding:0 4px;white-space:nowrap}
+.note{font-size:12px;color:var(--muted);margin:10px 0 0}
+footer{color:var(--muted);font-size:12px;line-height:1.7}
+#tip{position:fixed;pointer-events:none;z-index:10;background:var(--tipbg);color:var(--tipfg);border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.45;max-width:260px;box-shadow:0 4px 16px rgba(0,0,0,.18)}
+#tip b{display:block;font-size:14px}
+#tip span{opacity:.75}
+@media (max-width:640px){.wk .tick{font-size:17px}.wk .tick.sub{font-size:15px}.wk .val{font-size:19px}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <div class="eyebrow">AI VENUE TRACKER / 기술</div>
+      <h1>어떻게 돌아가고, 어디에 AI 를 쓰나</h1>
+      <p class="sub">매일 도는 수집, 번역, 분류, 적재의 흐름과 단계마다 쓰는 도구입니다. AI 가 하는 일은 키워드 번역, 키워드 뽑기, 보고 작성이고, 대분류는 AI 가 아니라 단어 규칙입니다.</p>
+    </div>
+    <div class="stamp"><b>●</b> 갱신 2026-11-22 04:18 KST</div>
+  </header>
+  <nav class="site" aria-label="페이지"><a href="../">인덱스</a><a href="../report/">리포트·차트</a><a href="../slack/">Slack 발송 로그</a><a href="../tech/" aria-current="page">기술</a></nav>
+
+  <section class="card">
+    <h2>매일 흐름 (한국 시간)</h2>
+    <p class="cap">AI 를 쓰는 단계만 굵게 표시</p>
+    <div class="scroll"><table class="list"><tr><th>시각</th><th>단계</th><th>도구</th><th>AI</th></tr><tr><td>04:00</td><td><b>국내 중계</b><br><span class="note">해외 접속이 막힌 중국 학술지 2곳은 국내에서 받아 넘긴다</span></td><td>예약 작업</td><td><span class="note">없음</span></td></tr><tr><td>04:20</td><td><b>수집</b><br><span class="note">13곳 게재처의 목록, 제목, 초록, 저자 키워드를 모으고 번역할 키워드를 뽑는다</span></td><td>GitHub Actions, Crossref, OpenAlex, 각 학술지 사이트</td><td><span class="note">없음</span></td></tr><tr><td>12:00</td><td><b>번역, 키워드 뽑기</b><br><span class="note">새 키워드를 중, 영, 한 3개 언어로 옮기고, 키워드가 없는 논문은 제목과 초록에서 뽑는다</span></td><td>Claude (클라우드 루틴)</td><td><b>Claude</b></td></tr><tr><td>12:00</td><td><b>분류</b><br><span class="note">대분류 20개와 관심주제 태그를 단어 규칙으로 붙인다. 규칙에 안 걸린 논문은 Claude 가 보고 규칙을 보강한다</span></td><td>규칙 스크립트</td><td><span class="note">없음</span></td></tr><tr><td>12:00</td><td><b>보고</b><br><span class="note">일간, 주간, 월간 요약을 만들어 Slack 으로 보낸다</span></td><td>Claude (클라우드 루틴)</td><td><b>Claude</b></td></tr><tr><td>직후</td><td><b>시트 적재</b><br><span class="note">새 행만 구글 시트에 덧붙인다</span></td><td>GitHub Actions</td><td><span class="note">없음</span></td></tr><tr><td>적재 뒤</td><td><b>공개 페이지</b><br><span class="note">이 대시보드를 다시 만든다</span></td><td>GitHub Actions</td><td><span class="note">없음</span></td></tr><tr><td>필요할 때</td><td><b>대량 일괄 처리</b><br><span class="note">번역 배치, 학회 논문집 한꺼번에 처리 (예: ICML 2026 2,894편 키워드 뽑기)</span></td><td>Gemini, 일부 Codex</td><td><b>Gemini, Codex</b></td></tr></table></div>
+  </section>
+
+  <section class="card">
+    <h2>키워드 번역 사전: 누가 옮겼나</h2>
+    <p class="cap">한 번 옮긴 키워드는 사전에 쌓아 다시 쓴다. 사전 3,352개 기준</p>
+    <div class="scroll"><table class="list"><tr><th>번역한 AI</th><th class="n">개수</th><th class="n">비율</th><th></th></tr><tr><td>Claude</td><td class="n">2,222</td><td class="n">66%</td><td style="width:40%"><span style="display:block;height:10px;border-radius:0 4px 4px 0;background:var(--s1);width:66.3%"></span></td></tr><tr><td>Gemini</td><td class="n">1,130</td><td class="n">34%</td><td style="width:40%"><span style="display:block;height:10px;border-radius:0 4px 4px 0;background:var(--s1);width:33.7%"></span></td></tr></table></div>
+  </section>
+
+  <section class="card">
+    <h2>논문 키워드: 어디서 왔나</h2>
+    <p class="cap">키워드 15,610개 기준. 저자 키워드와 OpenAlex 는 AI 가 아니고, AI 추출은 키워드가 없는 논문의 제목과 초록에서 뽑은 것</p>
+    <div class="scroll"><table class="list"><tr><th>출처</th><th class="n">개수</th><th class="n">비율</th><th></th></tr><tr><td>AI 추출 (ICML 일괄, Gemini 중심)</td><td class="n">11,388</td><td class="n">73%</td><td style="width:40%"><span style="display:block;height:10px;border-radius:0 4px 4px 0;background:var(--s1);width:73.0%"></span></td></tr><tr><td>OpenAlex 자동 키워드</td><td class="n">3,559</td><td class="n">23%</td><td style="width:40%"><span style="display:block;height:10px;border-radius:0 4px 4px 0;background:var(--s1);width:22.8%"></span></td></tr><tr><td>저자 키워드</td><td class="n">550</td><td class="n">4%</td><td style="width:40%"><span style="display:block;height:10px;border-radius:0 4px 4px 0;background:var(--s1);width:3.5%"></span></td></tr><tr><td>AI 추출 (일간 처리)</td><td class="n">113</td><td class="n">1%</td><td style="width:40%"><span style="display:block;height:10px;border-radius:0 4px 4px 0;background:var(--s1);width:1.0%"></span></td></tr></table></div>
+  </section>
+
+  <section class="card">
+    <h2>수집 경로 (AI 없음)</h2>
+    <p class="cap">논문 3,607편 기준. 대분류는 단어 규칙이고 지금 미분류 11편</p>
+    <div class="scroll"><table class="list"><tr><th>경로</th><th class="n">편수</th><th class="n">비율</th><th></th></tr><tr><td>PMLR 논문집 + PDF 첫 쪽 소속 판별 (로컬 일괄)</td><td class="n">2,894</td><td class="n">80%</td><td style="width:40%"><span style="display:block;height:10px;border-radius:0 4px 4px 0;background:var(--s1);width:80.2%"></span></td></tr><tr><td>Crossref API + OpenAlex 보강</td><td class="n">575</td><td class="n">16%</td><td style="width:40%"><span style="display:block;height:10px;border-radius:0 4px 4px 0;background:var(--s1);width:15.9%"></span></td></tr><tr><td>사이트 목차 + 상세 페이지</td><td class="n">81</td><td class="n">2%</td><td style="width:40%"><span style="display:block;height:10px;border-radius:0 4px 4px 0;background:var(--s1);width:2.2%"></span></td></tr><tr><td>사이트 목차 + 초록 페이지</td><td class="n">44</td><td class="n">1%</td><td style="width:40%"><span style="display:block;height:10px;border-radius:0 4px 4px 0;background:var(--s1);width:1.2%"></span></td></tr><tr><td>사이트 폼 조회 + PDF 앞 3쪽 추출</td><td class="n">13</td><td class="n">0%</td><td style="width:40%"><span style="display:block;height:10px;border-radius:0 4px 4px 0;background:var(--s1);width:1.0%"></span></td></tr></table></div>
+  </section>
+
+  <section class="card">
+    <h2>AI 배치는 타당한가: 검증 중</h2>
+    <p>지금의 AI 배치 (일간 = Claude, 대량 = Gemini, 일회성 = Codex) 는 품질 비교 없이 비용과 사용 가능 여부로 정해졌습니다. 그래서 키워드 뽑기와 번역을 Claude, Codex, Gemini, EXAONE 이 같은 문제로 풀고 이 트래커의 현행 결과와 함께 이름을 가려 채점하는 비교를 2026-11-12 부터 10회 진행합니다. 대분류 규칙도 주간 자가 점검을 붙일 예정입니다.</p>
+    <p><a href="https://jemmajeon.github.io/2026-10_PB/kw-bench.html">키워드 품질 비교 결과 보기</a></p>
+  </section>
+
+  <footer>숫자는 이 페이지를 만들 때마다 데이터에서 다시 셉니다.</footer>
+</main>
+</body>
+</html>
